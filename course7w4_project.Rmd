@@ -1,0 +1,108 @@
+---
+title: "Is an automatic or manual transmission better for MPG?"
+author: "Lulu Cao"
+date: "8/2/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Executive Summary
+You work for Motor Trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
+
+“Is an automatic or manual transmission better for MPG”
+"Quantify the MPG difference between automatic and manual transmissions"
+
+The results of this analysis confirms that the manual transmission should be better than automatic tranmission for MPG. However, with adjustment of other variables, in this case, wt and qsec, the MPG difference between automatic and manual transmissions are greatly reduced from 7.245 to 2.9358. 
+
+## Data Structure and Processing
+
+There are total 32 observations with 11 variables.
+```{r}
+data(mtcars)
+mtcars$am <- ifelse(test=mtcars$am==0, yes="auto", no="manual")
+mtcars$am <- as.factor(mtcars$am)
+mtcars$vs <- ifelse(test=mtcars$vs==0, yes="vshaped", no="straight")
+mtcars$vs <- as.factor(mtcars$vs)
+```
+
+## Exploratory Analysis
+
+### Scatter plot of 11 variables
+```{r}
+plot(mtcars)
+```
+
+All 11 variables are generally even distributed.MPG appears to be correlated with all 11 variables. Many of them are highly correlated with each other. A multivariable linear regression model needs to be carefully built to analyze the impact of transmission on MPG. 
+
+### Make Boxplot to compare mpg between auto and manual transmission
+```{r}
+library(ggplot2)
+g1 <- ggplot(mtcars, aes(x=am, y=mpg))+geom_boxplot()+labs(title="Comparison of MPG by type of Transmission")
+g1
+```
+
+The boxplot shows that cars with manual tranmission appears to have better mpg compared to cars with auto transmission. However, we need to further look at the confunders and verify the correlations.
+
+### Single linear Regression Models
+```{r}
+fit <- lm(mpg~am,data=mtcars)
+```
+
+Using am as the only regressor, cars with manual transmission is signficantly more efficient compared to cars with auto transmission. On average, 7.245 more mpg is associated with manual transmission compared to auto transmission. However, the R-squared for this model is only 0.3385, and it suggests that the model is poorly built. We need to look at additional variables for a better fit and find out the confunding factors for comparing mpg between manual and auto transmission. 
+
+## Build Multiple Linear Regression Models
+
+First, fit mpg against all 11 variables
+```{r}
+fit1 <- lm(mpg~., data=mtcars)
+```
+
+Adjusted R-squared is 0.8066, and residual standard error is 2.65. 
+P values for cyl, drat, vs, gear, and carb are relative larger compared to others. Removing these 5 variables and try the next fit. 
+
+```{r}
+fit2 <- lm(mpg~disp+hp+wt+qsec+am, data=mtcars)
+```
+
+Adjusted R-squared is 0.8375, and residual standard error is 2.429. 
+P values for disp and hp are larger than 0.05. Test removing disp and hp from the model. 
+
+```{r}
+fit3 <- lm(mpg~wt+qsec+am, data=mtcars)
+```
+
+Adjusted R-squared is 0.8336, and residual standard error is 2.459. Removing disp and hp simplies the model and R-squared is not impacted much. 
+
+```{r}
+fit4 <- lm(mpg~wt+am, data=mtcars)
+fit5 <- lm(mpg~qsec+am,data=mtcars)
+anova(fit,fit4,fit3)
+anova(fit,fit5,fit3)
+```
+
+# Conclusion
+Anova analysis suggests that including wt and qsec in the model significantly improves the fit. Combining all the analysis results, fit 3 is the simpliest model that gives the largest adjusted R-squared (0.8336) and the least residual standard error (2.459). In fit 3, the coef for ammanual is 2.9358 and this means the average mpg for manual transmission is 2.9358 higher compared to the auto transmission. The p value is 0.046716 and therefore the difference is statistically significant (p < 0.05). 
+
+# Appendix
+
+```{r}
+str(mtcars)
+plot(mtcars)
+summary(fit)
+summary(fit1)
+summary(fit2)
+summary(fit3)
+```
+
+## Diagnosis of fit3
+
+```{r}
+plot(fit3)
+```
+
+Visulization of the residual plots of fit3 shows no systematic pattern, suggesting the model fit3 is reasonablely good.  
